@@ -1,0 +1,30 @@
+inherit_from: configs/Replica/replica.yaml
+mode: rgbd
+scene: room1
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+setting: fixed_expert
+expname: expF_f2f_room1
+
+meshing:
+  gt_mesh_path: /gpfs/work5/0/prjs0799/expert_data/cull_replica_mesh/room1.ply
+data:
+  input_folder: room1
+  use_tmpdir_proxy: True
+
+tracking:
+  warmup: 5
+  motion_filter:
+    thresh: 1.2
+
+  f2f:
+    wait_until_warmup: True
+
+  pose_init:
+    const_speed_assumption: False
+    pose_hist: f2f
+
+  pose_mixing:
+    method: f2f

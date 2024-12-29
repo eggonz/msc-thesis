@@ -1,0 +1,26 @@
+inherit_from: configs/Replica/replica.yaml
+mode: rgbd
+scene: office1
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+setting: fixed_expert
+expname: expF_gtmix_office1
+
+meshing:
+  gt_mesh_path: /gpfs/work5/0/prjs0799/expert_data/cull_replica_mesh/office1.ply
+data:
+  input_folder: office1
+  use_tmpdir_proxy: True
+
+tracking:
+  warmup: 5
+  motion_filter:
+    thresh: 1.2
+
+  pose_init:
+    pose_hist: mix
+
+  pose_mixing:
+    method: gt

@@ -1,0 +1,36 @@
+inherit_from: configs/TUM_RGBD/tum.yaml
+mode: rgbd
+scene: freiburg2_xyz
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+setting: fixed_expert
+expname: expF_f2f_freiburg2_xyz
+
+data:
+  input_folder: rgbd_dataset_freiburg2_xyz
+  use_tmpdir_proxy: True
+cam:  #intrinsic is different per scene in TUM
+  H: 480 
+  W: 640 
+  fx: 520.9
+  fy: 521.0
+  cx: 325.1
+  cy: 249.7
+  distortion: [0.2312, -0.7849, -0.0033, -0.0001, 0.9172]
+
+tracking:
+  warmup: 6
+  motion_filter:
+    thresh: 4.0
+
+  f2f:
+    wait_until_warmup: True
+
+  pose_init:
+    const_speed_assumption: False
+    pose_hist: f2f
+
+  pose_mixing:
+    method: f2f

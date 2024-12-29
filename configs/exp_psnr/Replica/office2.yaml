@@ -1,0 +1,24 @@
+inherit_from: configs/Replica/replica.yaml
+mode: rgbd
+scene: office2
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+setting: psnr_expert
+expname: expP_office2
+
+meshing:
+  gt_mesh_path: /gpfs/work5/0/prjs0799/expert_data/cull_replica_mesh/office2.ply
+data:
+  input_folder: office2
+  use_tmpdir_proxy: True
+
+tracking:
+  warmup: 5
+  motion_filter:
+    thresh: 1.2
+
+  pose_mixing:
+    method: psnr
+    psnr_criterion_metric: psnr_masked

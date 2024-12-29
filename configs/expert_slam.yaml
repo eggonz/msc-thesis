@@ -1,0 +1,229 @@
+sync_method: strict
+verbose: True
+dataset: ''
+mode: ''  # 'mono', 'stereo', 'rgbd'
+stride: 1
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+reconstruction_datasets: ["replica"] # add the names of the datasets to be meshed
+render_datasets: ["replica"] # add the names of the datasets to be rendered (depth and color)
+setup_seed: 43
+wandb: False
+wandb_folder: /gpfs/home1/egonzalez/msc-thesis/output
+
+
+mapping:
+  device: "cuda:0"
+  pretrained: ./pretrained/middle_fine.pt
+  geo_iter_ratio: 0.3
+  BA_iter_ratio: 0.3
+  geo_iter_first: 400
+  every_frame: 5 # map only every X frames
+  BA: False # Do Bundle Adjustment or not
+  BA_cam_lr: 0.0002
+  frustum_edge: -4 # enlarges image plane a little in frustum feature selection
+  fix_geo_decoder: True # whether to fix the weights of the geometric decoder
+  fix_color_decoder: False # used when doing color refinement so that only the features are updated
+  vis_freq: 50 # frame frequency of visualizing the mapping performance
+  vis_inside: False # visualize the mapping performance inside the optimization loop
+  vis_inside_freq: 1000 # iteration frequency of visualizing the mapping performance
+  ckpt_freq: 2000 # checkpoint saving frame frequency
+  save_ckpts: True # save output to .tar file
+  keyframe_every: 50 # add frame to keyframe list every X frames
+  mapping_window_size: 5 # X - 2 keyframes used for BA and mapping. 2X used for color refinement step (if used)
+  w_color_loss: 0.1 # weight of color loss term
+  frustum_feature_selection: True # required for updating a local set of features from the neural point cloud
+  keyframe_selection_method: "overlap" # overlap or global. Overlap is described in the paper. Global is just random keyframe selection
+  keyframe_setting_method: "period" # period or motion
+  pixels: 1000 # number of sampled rays per frame. M in paper.
+  pixels_adding: 6000 # number of pixels choosing for adding points. X in paper.
+  pixels_based_on_color_grad: 0 # Y in paper.
+  iters_first: 1500 # how many iterations of optimizer for first frame
+  iters: 400 # how many iterations of optimizer per mapping stage
+  save_rendered_image: True # if True, saves the rgb image also in a separate folder compared to the standard visualization
+  min_iter_ratio: 0.95 # mapping iteration lower bound parameter. See supplementary material
+
+  pix_warping: True # Use Pixel warping
+  w_pix_warp_loss: 1000.0 # weight for pixel-warping loss term
+  w_geo_loss: 1.0 # weight for geo loss term
+  w_geo_loss_first_stage: 1.0
+
+  render_depth: "droid"
+  use_mono_to_complete: True
+  use_poisson_edit: False
+  save_depth: False
+
+  init:
+    geometry:
+      decoders_lr: 0.001
+      geometry_lr: 0.03
+      color_lr: 0.0
+    color:
+      decoders_lr: 0.005
+      geometry_lr: 0.005
+      color_lr: 0.005
+  stage:
+    geometry:
+      decoders_lr: 0.001
+      geometry_lr: 0.03
+      color_lr: 0.0
+    color:
+      decoders_lr: 0.005
+      geometry_lr: 0.005
+      color_lr: 0.005
+
+tracking:
+  device: "cuda:0"
+  pretrained: ./pretrained/droid.pth
+  buffer: 512
+  beta: 0.75  # beta * Distance(R|t) + (1-beta) * Distance(I|t), refer to droid_kernels.cu:frame_distance_kernel
+  warmup: 8
+  upsample: True
+  gt_camera: False  # use ground truth camera poses
+  max_age: 50
+  mono_thres: 0.1
+  motion_filter:
+    thresh: 4.0  # add as keyframe if avg flow >= 4.0 pixels
+  multiview_filter:
+    thresh: 0.01  # dpeth error < 0.01m
+    visible_num: 2  # points viewed by at least 2 cameras
+    kernel_size: 1
+    bound_enlarge_scale: 1.10
+  frontend:
+    enable_loop: False  # ExpertSLAM: Disable loop closure
+    enable_online_ba: False  # ExpertSLAM: Disable global BA
+    keyframe_thresh: 4.0  # remove keyframe if avg flow < 4.0 pixels
+    thresh: 16.0  # only consider edge with avg flow < 16.0 pixels
+    window: 25  # local ba window size
+    radius: 1
+    nms: 1
+    max_factors: 75  # num of edges within local ba
+  backend:
+    final_ba: False  # ExpertSLAM: Disable final BA
+    thresh: 25.0  # only consider edge with avg flow < 25.0 pixels
+    radius: 1
+    nms: 5
+    # used for loop detection
+    loop_window: 25
+    loop_thresh: 25.0  # only consider edge with avg flow < 50.0 pixels
+    loop_radius: 1
+    loop_nms: 12
+    enable_depth_prior: False
+    normalize: True
+  pose_init:
+    const_speed_assumption: True # if True, adds the previous relative pose change between the last two frames. If False, just copies the last known pose as initial solution.
+    pose_hist: mix # new ExpertSLAM: one of {f2f, f2m, mix, gt}. which pose history to use for f2m init
+    add_noise_scale: -1  # add noise to the initial pose, for training. ignored if add_noise_scale <= 0
+  f2f:
+    only_kf: False  # new in ExpertSLAM: if True, only track keyframes, no pose-filling/extrapolation
+    pose_filling: slerp_ba  # method to extrapolate/fill non-KF poses: {slerp,slerp_ba}, uses f2f-KF history
+    wait_until_warmup: False  # new in ExpertSLAM: if True, only starts tracking after warmup
+  f2m:  # frame-to-model tracking
+    only_kf: False  # new in ExpertSLAM: if True, only track keyframes, dont track every frame
+    init_from_f2f: False # new ExpertSLAM: if True, initializes the pose from the f2f tracking result
+    ignore_edge_W: 20 # ignores to sample rays falling closer than the number of pixels to the edge of the image
+    ignore_edge_H: 20
+    use_color_in_tracking: True # use color loss in tracking
+    handle_dynamic: True # filter away pixel rays that have too high uncertainty. This leverages the observed "gt depth".
+    depth_limit: False # when True, neglect depth pixels with larger depth values than 5 m
+    vis_freq: 50 # frame frequency of visualizing the tracking performance
+    vis_inside: False # visualize the tracking performance inside the optimization loop
+    vis_inside_freq: 50 # iteration frequency of visualizing the tracking performance
+    w_color_loss: 0.5 # weight of color loss term
+    separate_LR: True # use separate learning rate for translation and rotation (quaternion). Uses 1/5 of the tracking.lr for the rotation
+    sample_with_color_grad: False # if True, samples pixels with high color gradient for tracking. See implementation details in paper.
+    lr: 0.002
+    pixels: 200 # number of sampled rays per frame. M_t in paper.
+    iters: 20 # how many iterations of optimizer per tracking stage
+  pose_mixing:
+    method: mean # new ExpertSLAM: method for mixing: {f2f, f2m, mean, best, gt, psnr, learned_slerp, learned_linear, learned_matrix, learned_lie, learned_pose}
+    psnr_criterion_metric: psnr  # {psnr,psnr_masked}, applies only to method=psnr
+    mapped_pose: mix  # new ExpertSLAM: one of {mix, gt}. which pose to use for mapping
+
+cam:
+  ### original camera parameters
+  H: 680
+  W: 1200
+  fx: 600.0
+  fy: 600.0
+  cx: 599.5
+  cy: 339.5
+  png_depth_scale: 6553.5
+  ### target/output camera settings, camera_size -> resize -> crop -> target_size
+  H_edge: 0 #8
+  W_edge: 0 #16
+  H_out: 480 #240
+  W_out: 640 #320
+
+rendering:
+  N_surface_mapper: 10 # number of samples close to the surface for rendering
+  N_surface_tracker: 5 # number of samples close to the surface for rendering
+
+  near_end: 0.3 # sample from near end for zero-valued depth pixels
+  near_end_surface_mapper: 0.95 # rendering interval: 1 - rho in paper
+  far_end_surface_mapper: 1.05 # rendering interval: 1 + rho in paper
+  near_end_surface_tracker: 0.95 # rendering interval: 1 - rho in paper
+  far_end_surface_tracker: 1.05 # rendering interval: 1 + rho in paper
+  
+  sigmoid_coef_tracker: 0.1
+  sigmoid_coef_mapper: 0.1
+  sample_near_pcl: True # sample near the pcl when the pixel depth is zero
+  eval_img: True # if True, evaluates the LPIPS, SSIM and PSNR of the rendered images
+
+data:
+  dataset_path: ''
+  input_folder: ''
+  use_tmpdir_proxy: True
+  output: ''
+  video_length: ''
+  use_gt_wq: False
+
+meshing:
+  mesh_freq: -1
+  level_set: 0
+  resolution: 512  # change to 512 for higher resolution geometry
+  eval_rec: False
+  get_largest_components: False
+  remove_small_geometry_threshold: 0.2
+  n_points_to_eval: 200000
+  mesh_threshold_to_eval: 0.05
+  gt_mesh_path: ''
+  forecast_radius: 0 # >0 outside the image plane, <0 inside the image plane
+  
+pointcloud:
+  feat_device: "cuda:0" # if set to "cpu", save gpu mem, only move the necessary part of feature to gpu each opt iter, but speed much slower
+  nn_num: 8 # how many nn to choose at most within search radius
+  min_nn_num: 2 # if nn_num less than this, will skip this sample location
+  N_add: 3 # how many point to add at one location (front and behind gt_depth)
+  nn_weighting: "distance" # 'distance'|'expo" whether to use e(-x) or inverse square distance for weighting
+  radius_add: 0.04 # radius_add & radius_min are used when dynamic radius is not enabled
+  radius_min: 0.02 # used when use_dynamic_radius is False
+  radius_query: 0.08 # used when use_dynamic_radius is False
+  radius_add_max: 0.08 # r_max, r_min of add and query are used by dynamic radius based on color grad range [0, color_grad_threshold]
+  radius_add_min: 0.02
+  radius_query_ratio: 2 # when use_dynamic_radius is True, multiply radius add by this factor to get query radius
+  color_grad_threshold: 0.15 # threshold for color gradient. This value maps to the smallest search radius
+  near_end_surface: 0.95 # adding points interval: 1 - rho in paper
+  far_end_surface: 1.05 # adding points interval: 1 + rho in paper
+  nlist: 400 # FAISS parameter
+  nprobe: 4 # FAISS parameter
+  fix_interval_when_add_along_ray: False # when True, adds points equally spread centered at depth (-4 cm to +4 cm) and not dependent on depth
+  use_dynamic_radius: True
+  bind_npc_with_pose: True
+
+model:
+  c_dim: 32 # feature dimension of color and geometric neural points
+  exposure_dim: 8 # latent dimension of the exposure compensation features
+  pos_embedding_method: fourier # only 'fourier' is used
+  encode_rel_pos_in_col: True # encode relative position before color feature interpolation F_THETA
+  encode_exposure: False # optimize a per frame feature vector to deal with auto-exposure effects
+  use_view_direction: True # use viewing direction in color decoder
+  encode_viewd: True # encodes view direction in color decoder with fourier embedding when True
+
+mono_prior:
+  depth: omnidata
+  normal: False
+  depth_pretrained: ./pretrained/omnidata_dpt_depth_v2.ckpt
+  normal_pretrained: ./pretrained/omnidata_dpt_normal_v2.ckpt
+  predict_online: True

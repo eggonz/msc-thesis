@@ -1,0 +1,36 @@
+inherit_from: configs/Replica/replica.yaml
+mode: rgbd
+scene: office0
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+expname: office0_expA6-0
+
+meshing:
+  gt_mesh_path: /gpfs/work5/0/prjs0799/expert_data/cull_replica_mesh/office0.ply
+data:
+  input_folder: office0
+  use_tmpdir_proxy: True
+
+tracking:
+  # warmup: 8
+  # motion_filter:
+    # thresh: 4.0
+  # frontend:
+    # keyframe_thresh: 4.0
+    # thresh: 16.0
+    # window: 25
+    # max_factors: 75
+
+  f2f:
+    only_kf: False
+    pose_filling: slerp
+
+  f2m:
+    only_kf: False
+    const_speed_assumption: True
+    pose_hist: mix
+
+  pose_mixing:
+    method: mean

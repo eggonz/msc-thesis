@@ -1,0 +1,13 @@
+inherit_from: configs/Replica/replica.yaml
+mode: rgbd
+scene: office0
+only_tracking: False
+offline_mapping: False
+offline_video: video.npz
+wandb: True
+
+
+meshing:
+  gt_mesh_path: /gpfs/work5/0/prjs0799/expert_data/cull_replica_mesh/office0.ply
+data:
+  input_folder: office0

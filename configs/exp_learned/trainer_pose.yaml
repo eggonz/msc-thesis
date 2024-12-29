@@ -1,0 +1,48 @@
+output: /gpfs/work5/0/prjs0799/expert_output/ExpertTrainer
+setting: learned_expert
+expname: lie_replica
+
+setup_seed: 43
+
+train:
+  scenes: [
+    "configs/Replica/office0.yaml",
+    "configs/Replica/office1.yaml",
+    "configs/Replica/office2.yaml",
+    "configs/Replica/office3.yaml",
+    "configs/Replica/office4.yaml",
+    "configs/Replica/room0.yaml",
+    "configs/Replica/room1.yaml",
+    "configs/Replica/room2.yaml",
+  ]
+  outer_reps: 3  # times to repeat each slam scene run
+  
+  inner_reps: 3  # times to reuse each slam run data
+  folds: 5  # number of folds for cross-validation
+  epochs: 10  # for training, times to go over the full trajectory
+  
+  batch_size: 16  # for training, size of batch for each optimization step
+  val_batch_size: 32  # for validation
+  lr: 0.00001  # learning rate
+  mix_method: learned_pose  # mixer type (cfg.tracking.pose_mixing.method)
+  
+  # generation of data points for learning task
+  data_gen:
+    pose_init:
+      pose_hist: gt  # {gt, mix}. gt ensures data close to gt manifold
+      add_noise_scale: 0.02  # add noise to the data point, for training data around manifold
+    pose_mixing:
+      mapped_pose: gt  # {gt, mix}. gt ensures no eror in mapping
+
+test:
+  scenes: [
+    "configs/Replica/office0.yaml",
+    "configs/Replica/room0.yaml",
+  ]
+  batch_size: 32  # for testing
+
+  data_gen:
+    pose_init:
+      pose_hist: gt
+    pose_mixing:
+      mapped_pose: gt

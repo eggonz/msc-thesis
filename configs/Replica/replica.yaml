@@ -1,0 +1,99 @@
+verbose: True
+dataset: 'replica'
+mode: rgbd
+stride: 1
+max_frames: -1 # new in Expert: maximum number of frames to process
+setting: rgbd_mode_3
+setup_seed: 120
+
+mapping:
+  device: "cuda:0"
+  BA: False
+  color_refine: True
+  ckpt_freq: 2000
+  mapping_window_size: 12
+  pixels: 5000
+  pixels_based_on_color_grad: 1000
+  iters: 400
+
+tracking:
+  gt_camera: False
+  device: "cuda:0"
+  buffer: 400
+  beta: 0.6
+  warmup: 5
+  upsample: True
+  max_age: 50
+  mono_thres: False
+  motion_filter:
+    thresh: 1.2  # add as keyframe if avg flow >= 4.0 pixels
+  multiview_filter:
+    thresh: 0.01  # dpeth error < 0.01m
+    visible_num: 2  # points viewed by at least 2 cameras
+    kernel_size: 1
+    bound_enlarge_scale: 1.20
+  frontend:
+    enable_loop: False  # ExpertSLAM: Disable loop closure
+    enable_online_ba: False  # ExpertSLAM: Disable global BA
+    keyframe_thresh: 2.25  # remove keyframe if avg flow < 4.0 pixels
+    thresh: 25.0  # only consider edge with avg flow < 16.0 pixels
+    window: 50  # local ba window size
+    radius: 2
+    nms: 1
+    max_factors: 100  # num of edges within local ba
+  backend:
+    # used for loop detection
+    final_ba: False  # ExpertSLAM: Disable final BA
+    loop_window: 50
+    loop_nms: 25
+    enable_depth_prior: True
+    normalize: True
+  f2m:
+    vis_freq: 200
+    vis_inside_freq: 40
+    ignore_edge_W: 100
+    ignore_edge_H: 100
+    pixels: 1500
+    iters: 80
+    lr: 0.002
+
+cam:
+  ### original camera parameters
+  H: 680
+  W: 1200
+  fx: 600.0
+  fy: 600.0
+  cx: 599.5
+  cy: 339.5
+  png_depth_scale: 6553.5 #for depth image in png format
+  ### target/output camera settings, camera_size -> resize -> crop -> target_size
+  H_edge: 0
+  W_edge: 0
+  H_out: 320
+  W_out: 640
+
+rendering:
+  N_samples: 48
+  N_surface: 24
+
+meshing:
+  eval_rec: True
+  resolution: 512  # change to 512 for higher resolution geometry
+  get_largest_components: False
+  remove_small_geometry_threshold: 0.2
+  n_points_to_eval: 200000
+  mesh_threshold_to_eval: 0.05
+  forecast_radius: 25 # 400
+
+mono_prior:
+  depth: omnidata
+  normal: False
+  depth_pretrained: ./pretrained/omnidata_dpt_depth_v2.ckpt
+  normal_pretrained: ./pretrained/omnidata_dpt_normal_v2.ckpt
+  predict_online: False
+
+data:
+  dataset_path: /gpfs/work5/0/prjs0799/expert_data/datasets/Replica
+  #output: /gpfs/home1/egonzalez/msc-thesis/output/Replica
+  output: /gpfs/work5/0/prjs0799/expert_output/Replica
+  use_gt_wq: False
